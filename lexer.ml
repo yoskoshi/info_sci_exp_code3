@@ -74,14 +74,29 @@ let numberOfSucceed = ref 0
 let numberOfQuestion = ref 1
 let vid = ref ""
 
+let rec reverse xs =
+        if xs = [] then []
+        else reverse (List.tl xs) @ [List.hd xs]
+
 let rec print_ast ast = match ast with
     (App(s, hd::t1)) -> (P.printf "App(\"%s\", [" s; print_ast hd; List.iter (fun x -> (print_string ";"; print_ast x)) t1; print_string "])")
     | (App(s, [])) -> P.printf "App(\"%s\", [])" s 
     | (Atom s) -> P.printf "Atom \"%s\"" s 
     | (Var s) -> P.printf "Var \"%s\"" s
 
-let rec print_sprolog ast = match ast with
-    (App(s, hd::t1)) -> (P.printf "%s(" s; print_sprolog hd; List.iter (fun x -> (print_string ", "; print_sprolog x)) t1; print_string "). ") 
+let rec print_sprolog ast valList = match ast with
+    (App(s, lst)) -> let rec valPrint valList resultList = 
+                        match (valList, resultList) with
+                            (first1::rest1, first2::rest2) -> (
+                                P.printf("%s = ") first1;
+                                print_sprolog first2 [];
+                                P.printf("\n");
+                                valPrint rest1 rest2
+                            )
+                            | ([], _) -> ()
+                            | (_, []) -> ()
+                            | ([], []) -> ()
+                        in valPrint (reverse valList) lst
     | (App(s, [])) -> P.printf "%s()" s 
     | (Atom s) -> P.printf "%s" s 
     | (Var s) -> P.printf "%s" s 
@@ -114,7 +129,7 @@ let mgu (a, b) =
         | (_, _) -> (false, unifier)
         in ut([a], [b], (fun x -> x))
 
-let succeed query = (numberOfSucceed := (!numberOfSucceed + 1); true)
+let succeed query = (numberOfSucceed := (!numberOfSucceed + 1); print_sprolog query [!vid]; true)
 let rename ver term = 
     let rec mapVar ast = match ast with
         (Atom x) -> Atom(x)
@@ -200,7 +215,7 @@ module Parser = struct
             L.ONE '(' -> let _ = eat(L.ONE '(') in let e = expr() in let _ = eat(L.ONE ')') in e
             | L.ONE '[' -> let _ = eat(L.ONE '[') in let l = list() in let _ = eat(L.ONE ']') in l 
             | L.CID s -> let _ = eat(L.CID "") in let t = tail_opt s in t 
-            | L.VID s -> let _ = eat(L.VID "") in E.Var s 
+            | L.VID s -> let _ = eat(L.VID "") in E.vid := s; E.Var s 
             | L.NUM n -> let _ = eat(L.NUM "") in E.Atom n 
             | _ -> error()
         and tail_opt _to = match !tok with
