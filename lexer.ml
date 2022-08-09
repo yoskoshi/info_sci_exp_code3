@@ -114,7 +114,7 @@ let mgu (a, b) =
         | (_, _) -> (false, unifier)
         in ut([a], [b], (fun x -> x))
 
-let succeed query = (print_sprolog query; true)
+let succeed query = (numberOfSucceed := (!numberOfSucceed + 1); true)
 let rename ver term = 
     let rec mapVar ast = match ast with
         (Atom x) -> Atom(x)
@@ -179,7 +179,8 @@ module Parser = struct
                         advance(); prog := clauses(); close_in(!L._ISTREAM))
                     | _ -> error())
             | _ -> let t = term() in match !tok with
-                        L.ONE '.' -> (check(L.ONE '.'); let _ = E.eval(!prog, t) in ())
+                        L.ONE ',' -> (eat(L.ONE ','); let _ = E.eval(!prog, t) in E.numberOfQuestion := (!E.numberOfQuestion + 1); command())
+                        | L.ONE '.' -> (check(L.ONE '.'); let _ = E.eval(!prog, t) in if !E.numberOfQuestion = !E.numberOfSucceed then (Printf.printf "Yes"; E.numberOfQuestion := 1; E.numberOfSucceed := 0) else (Printf.printf "No"; E.numberOfQuestion := 1; E.numberOfSucceed := 0))
                         | _ -> error()
         and term () = match !tok with
             L.ONE '(' -> let _ = eat(L.ONE '(') in let t3 = term() in let _ = eat(L.ONE ')') in t3
