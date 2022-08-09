@@ -156,87 +156,87 @@ end
 
 module Parser = struct
 
-        module L = Lexer
-        module E = Evaluator
+module L = Lexer
+module E = Evaluator
         
-        let tok = ref (L.ONE ' ')
-        let getToken () = L.gettoken ()
-        let advance () = (tok := getToken())
+let tok = ref (L.ONE ' ')
+let getToken () = L.gettoken ()
+let advance () = (tok := getToken())
         
-        exception Syntax_error
-        let error () = raise Syntax_error
-        let check t = match !tok with
-                L.CID _ -> if (t = (L.CID "")) then () else error ()
-                | L.VID _ -> if (t = (L.VID "")) then () else error ()
-                | L.NUM _ -> if (t = (L.NUM "")) then () else error ()
-                | tk      -> if (tk = t) then () else error ()
+exception Syntax_error
+let error () = raise Syntax_error
+let check t = match !tok with
+        L.CID _ -> if (t = (L.CID "")) then () else error ()
+        | L.VID _ -> if (t = (L.VID "")) then () else error ()
+        | L.NUM _ -> if (t = (L.NUM "")) then () else error ()
+        | tk      -> if (tk = t) then () else error ()
         
-        let eat t = (check t; advance())
-        let prog = ref [[E.Var ""]]
+let eat t = (check t; advance())
+let prog = ref [[E.Var ""]]
         
-        let rec clauses () = match !tok with
-            L.EOF -> []
-            | _ -> let clu1 = clause() in let clu2 = clauses() in clu1::clu2
-        and clause () = match !tok with
-            L.ONE '(' -> let t1 = term() in let _ = eat(L.ONE '.') in [t1]
-            | _ -> let pre1 = predicate() in let to1 = to_opt() in let _ = eat(L.ONE '.') in pre1::to1
-        and to_opt () = match !tok with
-            L.TO -> let _ = eat(L.TO) in let t2 = terms() in t2
-            | _ -> []
-        and command () = match !tok with
-            L.QUIT -> exit 0
-            | L.OPEN -> (eat(L.OPEN);
-                match !tok with
-                    L.CID s -> (eat(L.CID ""); check(L.ONE '.');
-                        L._ISTREAM := open_in(s^".pl");
-                        advance(); prog := clauses(); close_in(!L._ISTREAM))
-                    | _ -> error())
-            | _ -> let t = term() in match !tok with
-                        L.ONE ',' -> (eat(L.ONE ','); let _ = E.eval(!prog, t) in E.numberOfQuestion := (!E.numberOfQuestion + 1); command())
-                        | L.ONE '.' -> (check(L.ONE '.'); let _ = E.eval(!prog, t) in if !E.numberOfQuestion = !E.numberOfSucceed then (Printf.printf "Yes"; E.numberOfQuestion := 1; E.numberOfSucceed := 0) else (Printf.printf "No"; E.numberOfQuestion := 1; E.numberOfSucceed := 0))
-                        | _ -> error()
-        and term () = match !tok with
-            L.ONE '(' -> let _ = eat(L.ONE '(') in let t3 = term() in let _ = eat(L.ONE ')') in t3
-            | _ -> let pre2 = predicate() in pre2
-        and terms () = let t4 = term() in terms' [t4]
-        and terms' _t = match !tok with
-            L.ONE ',' -> let _ = eat(L.ONE ',') in let t5 = term() in let _ = terms' (_t@[t5]) in _t@[t5]
-            | _ -> _t
-        and predicate () = match !tok with
-            L.CID s -> let cid = s in let _ = eat(L.CID "") in let _ = eat(L.ONE '(') in let ar1 = args() in let _ = eat(L.ONE ')') in E.App(cid, ar1)
-            | _ -> error()
-        and args () = let exp1 = expr() in args' [exp1]
-        and args' _a = match !tok with
-            L.ONE ',' -> let _ = eat(L.ONE ',') in let exp2 = expr() in let _ = args' (_a@[exp2]) in _a@[exp2]
-            | _ -> _a
-        and expr () = match !tok with
-            L.ONE '(' -> let _ = eat(L.ONE '(') in let e = expr() in let _ = eat(L.ONE ')') in e
-            | L.ONE '[' -> let _ = eat(L.ONE '[') in let l = list() in let _ = eat(L.ONE ']') in l 
-            | L.CID s -> let _ = eat(L.CID "") in let t = tail_opt s in t 
-            | L.VID s -> let _ = eat(L.VID "") in E.vid := s; E.Var s 
-            | L.NUM n -> let _ = eat(L.NUM "") in E.Atom n 
-            | _ -> error()
-        and tail_opt _to = match !tok with
-            L.ONE '(' -> let _ = eat(L.ONE '(') in let ags2 = args() in let _ = eat(L.ONE ')') in E.App (_to, ags2)
-            | _ -> E.Atom _to
-        and list () = match !tok with
-            L.ONE ']' -> E.Atom "nil"
-            | _ -> let exp3 = expr() in let lso1 = list_opt() in E.App("cons", [exp3; lso1])
-        and list_opt () = match !tok with
-            L.ONE '|' -> let _ = eat(L.ONE '|') in let id = id() in id
-            | L.ONE ',' -> let _ = eat(L.ONE ',') in let lst2 = list() in lst2
-            | _ -> E.Atom "nil"
-        and id () = match !tok with
-            L.CID s -> let cid = s in let _ = eat(L.CID "") in E.Atom cid
-            | L.VID s -> let vid = s in let _ = eat(L.VID "") in E.Var vid
-            | L.NUM n -> let num = n in let _ = eat(L.NUM "") in E.Atom num
-            | _ -> error()
+let rec clauses () = match !tok with
+        L.EOF -> []
+        | _ -> let clu1 = clause() in let clu2 = clauses() in clu1::clu2
+and clause () = match !tok with
+        L.ONE '(' -> let t1 = term() in let _ = eat(L.ONE '.') in [t1]
+        | _ -> let pre1 = predicate() in let to1 = to_opt() in let _ = eat(L.ONE '.') in pre1::to1
+and to_opt () = match !tok with
+        L.TO -> let _ = eat(L.TO) in let t2 = terms() in t2
+        | _ -> []
+and command () = match !tok with
+        L.QUIT -> exit 0
+        | L.OPEN -> (eat(L.OPEN);
+            match !tok with
+                L.CID s -> (eat(L.CID ""); check(L.ONE '.');
+                   L._ISTREAM := open_in(s^".pl");
+                   advance(); prog := clauses(); close_in(!L._ISTREAM))
+                | _ -> error())
+        | _ -> let t = term() in match !tok with
+                L.ONE ',' -> (eat(L.ONE ','); let _ = E.eval(!prog, t) in E.numberOfQuestion := (!E.numberOfQuestion + 1); command())
+                | L.ONE '.' -> (check(L.ONE '.'); let _ = E.eval(!prog, t) in if !E.numberOfQuestion = !E.numberOfSucceed then (Printf.printf "Yes"; E.numberOfQuestion := 1; E.numberOfSucceed := 0) else (Printf.printf "No"; E.numberOfQuestion := 1; E.numberOfSucceed := 0))
+                | _ -> error()
+and term () = match !tok with
+        L.ONE '(' -> let _ = eat(L.ONE '(') in let t3 = term() in let _ = eat(L.ONE ')') in t3
+        | _ -> let pre2 = predicate() in pre2
+and terms () = let t4 = term() in terms' [t4]
+and terms' _t = match !tok with
+        L.ONE ',' -> let _ = eat(L.ONE ',') in let t5 = term() in let _ = terms' (_t@[t5]) in _t@[t5]
+        | _ -> _t
+and predicate () = match !tok with
+        L.CID s -> let cid = s in let _ = eat(L.CID "") in let _ = eat(L.ONE '(') in let ar1 = args() in let _ = eat(L.ONE ')') in E.App(cid, ar1)
+        | _ -> error()
+and args () = let exp1 = expr() in args' [exp1]
+and args' _a = match !tok with
+        L.ONE ',' -> let _ = eat(L.ONE ',') in let exp2 = expr() in let _ = args' (_a@[exp2]) in _a@[exp2]
+        | _ -> _a
+and expr () = match !tok with
+        L.ONE '(' -> let _ = eat(L.ONE '(') in let e = expr() in let _ = eat(L.ONE ')') in e
+        | L.ONE '[' -> let _ = eat(L.ONE '[') in let l = list() in let _ = eat(L.ONE ']') in l 
+        | L.CID s -> let _ = eat(L.CID "") in let t = tail_opt s in t 
+        | L.VID s -> let _ = eat(L.VID "") in E.vid := s; E.Var s 
+        | L.NUM n -> let _ = eat(L.NUM "") in E.Atom n 
+        | _ -> error()
+and tail_opt _to = match !tok with
+        L.ONE '(' -> let _ = eat(L.ONE '(') in let ags2 = args() in let _ = eat(L.ONE ')') in E.App (_to, ags2)
+        | _ -> E.Atom _to
+and list () = match !tok with
+        L.ONE ']' -> E.Atom "nil"
+        | _ -> let exp3 = expr() in let lso1 = list_opt() in E.App("cons", [exp3; lso1])
+and list_opt () = match !tok with
+        L.ONE '|' -> let _ = eat(L.ONE '|') in let id = id() in id
+        | L.ONE ',' -> let _ = eat(L.ONE ',') in let lst2 = list() in lst2
+        | _ -> E.Atom "nil"
+and id () = match !tok with
+        L.CID s -> let cid = s in let _ = eat(L.CID "") in E.Atom cid
+        | L.VID s -> let vid = s in let _ = eat(L.VID "") in E.Var vid
+        | L.NUM n -> let num = n in let _ = eat(L.NUM "") in E.Atom num
+        | _ -> error()
         
-        end
+end
         
-        let rec run () = 
-            print_string "?- ";
-            while true do
-                flush stdout; Lexer._ISTREAM := stdin;
-                Parser.advance(); Parser.command(); print_string "\n?- "
-            done
+let rec run () = 
+        print_string "?- ";
+        while true do
+            flush stdout; Lexer._ISTREAM := stdin;
+            Parser.advance(); Parser.command(); print_string "\n?- "
+        done
