@@ -94,10 +94,8 @@ let rec print_sprolog ast valList = match ast with
                                 valPrint rest1 rest2
                             )
                             | ([], _) -> ()
-                            | (_, []) -> ()
-                            | ([], []) -> ()
+                            | (_, []) -> P.printf "%s()" s
                         in valPrint (reverse valList) lst
-    | (App(s, [])) -> P.printf "%s()" s 
     | (Atom s) -> P.printf "%s" s 
     | (Var s) -> P.printf "%s" s 
 
