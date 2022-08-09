@@ -18,8 +18,7 @@ let print_token tk =
 
 let _ISTREAM = ref stdin
 let ch = ref []
-let low_number = ref 1
-let plus_one_low_number () = low_number := !low_number + 1
+
 let read () = match !ch with
     [] -> input_char !_ISTREAM
     | h::rest -> (ch := rest; h)
@@ -54,7 +53,7 @@ and gettoken () =
             match token with
                 ONE ' ' -> gettoken ()
                 | ONE '\t' -> gettoken ()
-                | ONE '\n' -> let _ = plus_one_low_number () in gettoken()
+                | ONE '\n' -> gettoken()
                 | _ -> token
     with End_of_file -> EOF
 
@@ -81,12 +80,12 @@ let rec print_ast ast = match ast with
     | (Atom s) -> P.printf "Atom \"%s\"" s 
     | (Var s) -> P.printf "Var \"%s\"" s
 
-(*let rec print_sprolog ast = match ast with
+let rec print_sprolog ast = match ast with
     (App(s, hd::t1)) -> (P.printf "%s(" s; print_sprolog hd; List.iter (fun x -> (print_string ", "; print_sprolog x)) t1; print_string "). ") 
     | (App(s, [])) -> P.printf "%s()" s 
-    | (Atom s) -> P.printf "!vid = %s" s 
+    | (Atom s) -> P.printf "%s" s 
     | (Var s) -> P.printf "%s" s 
-*)
+
 let print_ast_list lst = match lst with
     (hd::t1) -> (print_string "["; print_ast hd; List.iter (fun x -> (print_string ";"; print_ast x)) t1; print_string "]")
     | [] -> print_string "[]"
@@ -115,7 +114,7 @@ let mgu (a, b) =
         | (_, _) -> (false, unifier)
         in ut([a], [b], (fun x -> x))
 
-let succeed query = (print_ast query; true)
+let succeed query = (print_sprolog query; true)
 let rename ver term = 
     let rec mapVar ast = match ast with
         (Atom x) -> Atom(x)
@@ -200,7 +199,7 @@ module Parser = struct
             L.ONE '(' -> let _ = eat(L.ONE '(') in let e = expr() in let _ = eat(L.ONE ')') in e
             | L.ONE '[' -> let _ = eat(L.ONE '[') in let l = list() in let _ = eat(L.ONE ']') in l 
             | L.CID s -> let _ = eat(L.CID "") in let t = tail_opt s in t 
-            | L.VID s -> let _ = eat(L.VID "") in let _ = E.vid := s in E.Var s 
+            | L.VID s -> let _ = eat(L.VID "") in E.Var s 
             | L.NUM n -> let _ = eat(L.NUM "") in E.Atom n 
             | _ -> error()
         and tail_opt _to = match !tok with
